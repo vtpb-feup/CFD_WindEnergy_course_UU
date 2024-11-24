@@ -2,6 +2,7 @@ from Fluid_3D import Fluid_windenergy
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from debug import init_monitor_points, output_monitor
 from scipy.io import savemat,loadmat
 
 # Parameters to set. 
@@ -22,6 +23,7 @@ t_max=LX/Uinf
 iter_saving=100
 start_from=500
 CFL_max=0.2
+iter_monitor=10
 
 fileName='simulation'
 
@@ -40,6 +42,14 @@ def main():
         i=start_from
         Q=0
 
+    if iter_monitor > 0:
+        monitor_coords, monitor_index, monitor_filepaths = \
+                init_monitor_points(X_T, Y_T, Z_T, R_T,
+                                    sim.x_u, sim.y_u, sim.z_u,
+                                    sim.x_v, sim.y_v, sim.z_v,
+                                    sim.x_w, sim.y_w, sim.z_w,
+                                    sim.x_p, sim.y_p, sim.z_p)
+
     # Solve:
     t1=time.time()
     while (t<=t_max):
@@ -56,6 +66,12 @@ def main():
         
         if np.mod(i,iter_saving)==0:
             savemat(fileName+'_'+str(i)+'.mat',{'u':sim.u,'v':sim.v,'w':sim.w,'p':sim.p,'t':t,'x_u':sim.x_u,'y_u':sim.y_u,'z_u':sim.z_u,'x_v':sim.x_v,'y_v':sim.y_v,'z_v':sim.z_v,'x_w':sim.x_w,'y_w':sim.y_w,'z_w':sim.z_w,'x_p':sim.x_p,'y_p':sim.y_p,'z_p':sim.z_p})
+
+        if iter_monitor > 0 and np.mod(i, iter_monitor) == 0:
+            output_monitor(monitor_filepaths, monitor_index, 
+                           i, np.round(t,1), np.round(sim.dt,3), 
+                           sim.u, sim.v, sim.w, sim.p, 
+                           max_div, interpolate_to_u=True)
 
     savemat(fileName+'_'+str(i)+'.mat',{'u':sim.u,'v':sim.v,'w':sim.w,'p':sim.p,'t':t,'x_u':sim.x_u,'y_u':sim.y_u,'z_u':sim.z_u,'x_v':sim.x_v,'y_v':sim.y_v,'z_v':sim.z_v,'x_w':sim.x_w,'y_w':sim.y_w,'z_w':sim.z_w,'x_p':sim.x_p,'y_p':sim.y_p,'z_p':sim.z_p})
 

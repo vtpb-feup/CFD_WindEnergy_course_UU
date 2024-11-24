@@ -51,7 +51,8 @@ def main():
         sim.corrector()
         sim.compute_time_step(CFL_max)
         
-        print(i,' t=',np.round(t,1),' dt=',np.round(sim.dt,3),' MAX DIV=',np.round(np.max(np.abs(sim.DIVERGENCE(sim.u,sim.v,sim.w))),4))
+        max_div = np.round(np.max(np.abs(sim.DIVERGENCE(sim.u,sim.v,sim.w))),4)
+        print(i,' t=',np.round(t,1),' dt=',np.round(sim.dt,3),' MAX DIV=', max_div)
         
         if np.mod(i,iter_saving)==0:
             savemat(fileName+'_'+str(i)+'.mat',{'u':sim.u,'v':sim.v,'w':sim.w,'p':sim.p,'t':t,'x_u':sim.x_u,'y_u':sim.y_u,'z_u':sim.z_u,'x_v':sim.x_v,'y_v':sim.y_v,'z_v':sim.z_v,'x_w':sim.x_w,'y_w':sim.y_w,'z_w':sim.z_w,'x_p':sim.x_p,'y_p':sim.y_p,'z_p':sim.z_p})

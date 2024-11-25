@@ -98,8 +98,6 @@ def init_monitor_points(xturb, yturb, zturb, rturb,
         List with filepaths for monitoring points.
     """
 
-    # TODO: check if using getting NN for each interpolated variable is better?
-    # TODO: group xturb, etc.
     ndim = 3
     nvar = 4
     downstream_dist = 4. * np.array(rturb)
@@ -110,19 +108,19 @@ def init_monitor_points(xturb, yturb, zturb, rturb,
     coords = np.zeros((nmonitor, ndim))
 
     # assign hub locations
-    coords[0:3,0] = np.array(xturb)
-    coords[0:3,1] = np.array(yturb)
-    coords[0:3,2] = np.array(zturb)
+    coords[0:nturb,0] = np.array(xturb)
+    coords[0:nturb,1] = np.array(yturb)
+    coords[0:nturb,2] = np.array(zturb)
 
     # assign downstream locations
-    coords[3:-np.size(column_y),0] = np.array(xturb) + downstream_dist
-    coords[3:-np.size(column_y),1] = np.array(yturb)
-    coords[3:-np.size(column_y),2] = np.array(zturb)
+    coords[nturb:-np.size(column_y),0] = np.array(xturb) + downstream_dist
+    coords[nturb:-np.size(column_y),1] = np.array(yturb)
+    coords[nturb:-np.size(column_y),2] = np.array(zturb)
     # print(coords[:,0])
     # print(coords[:,1])
     # print(coords[:,2])
 
-    # append also near outlet 
+    # append also near outlet
     # (-5 due to p array size after interpolation to u mesh)
     coords[-np.size(column_y):,0] = np.array(x_p[-4])
     coords[-np.size(column_y):,1] = column_y
@@ -183,7 +181,7 @@ def init_convergence_file(monitor_coords):
     for k in range(nmonitor):
         filepath = f'conv_{k}.plt'
         with open(filepath, 'w') as f:
-            f.write(f'Convergence monitoring at:')
+            f.write('Convergence monitoring at:\n')
             f.write(f'{monitor_coords[k,0]}, '
                     f'{monitor_coords[k,1]}, '
                     f'{monitor_coords[k,2]}\n')

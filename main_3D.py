@@ -7,21 +7,34 @@ from scipy.io import savemat,loadmat
 
 # Parameters to set. 
 Uinf, nu= 8, 10      # Parameters for the wind energy simulation.   
-LX, NX= 1000, 100   # Parameters for the wind energy simulation.
-LY, NY= 500, 64     # Parameters for the wind energy simulation.    
-LZ, NZ= 500, 64     # Parameters for the wind energy simulation.
 
 # turbine locations
-X_T=[300,600,750]
-Y_T=[0,100,-100]
-Z_T=[0,0,0]
-R_T=[50,50,50]
-C_T=[0.8,0.8,0.8]    
+nturbines = 4
+D_T = 100.
+R_T = np.ones((nturbines)) * D_T/2.
+X_T = np.array([20.*D_T, 23.*D_T, 26.*D_T, 29.*D_T])
+Y_T = np.array([-2.*D_T, 2.*D_T, -2.*D_T, 2.*D_T])
+Z_T = np.zeros((nturbines))
+C_T = 0.8 * np.ones((nturbines))
 delta=10
 
-t_max=LX/Uinf
+LX = 48.*D_T
+LY = 8.*D_T
+LZ = 20.*D_T
+
+delta_y = D_T/5.
+delta_x = delta_y
+delta_z = delta_y
+
+NX = int(LX / delta_x)
+NY = int(LY / delta_y)
+NZ = int(LZ / delta_z)
+
+print(f'Grid size: NX = {NX}, NY = {NY}, NZ = {NZ} ({NX*NY*NZ} nodes)')
+
+t_max=4.*LX/Uinf
 iter_saving=100
-start_from=500
+start_from=0
 CFL_max=0.2
 iter_monitor=10
 

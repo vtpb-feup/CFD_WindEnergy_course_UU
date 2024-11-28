@@ -106,16 +106,21 @@ def init_monitor_points(xturb, yturb, zturb, rturb,
     column_y = np.unique(np.array(yturb))
     nmonitor = int(2*nturb + np.size(column_y))
     coords = np.zeros((nmonitor, ndim))
+    labels = []
 
     # assign hub locations
     coords[0:nturb,0] = np.array(xturb)
     coords[0:nturb,1] = np.array(yturb)
     coords[0:nturb,2] = np.array(zturb)
+    for i in range(nturb):
+        labels.append(f"T{i}")
 
     # assign downstream locations
     coords[nturb:-np.size(column_y),0] = np.array(xturb) + downstream_dist
     coords[nturb:-np.size(column_y),1] = np.array(yturb)
     coords[nturb:-np.size(column_y),2] = np.array(zturb)
+    for i in range(nturb):
+        labels.append(f"D{i}")
     # print(coords[:,0])
     # print(coords[:,1])
     # print(coords[:,2])
@@ -125,6 +130,8 @@ def init_monitor_points(xturb, yturb, zturb, rturb,
     coords[-np.size(column_y):,0] = np.array(x_p[-4])
     coords[-np.size(column_y):,1] = column_y
     coords[-np.size(column_y):,2] = np.array(zturb[-1])
+    for i in range(np.size(column_y)):
+        labels.append(f"O{i}")
 
     # Get nearest neighbour nodes for each variable
     nn_indx = np.zeros((nmonitor,ndim,nvar), dtype=int)
@@ -142,18 +149,11 @@ def init_monitor_points(xturb, yturb, zturb, rturb,
         nn_indx[k,1,3] = int(np.argmin(np.abs(y_p - coords[k,1])))
         nn_indx[k,2,3] = int(np.argmin(np.abs(z_p - coords[k,2])))
 
-    # nn_x = [int(np.argmin(np.abs(sim.x_u - xi))) for xi in x_conv]
-    # nn_y = [int(np.argmin(np.abs(sim.y_u - yi))) for yi in y_conv]
-    # nn_z = [int(np.argmin(np.abs(sim.z_u - zi))) for zi in z_conv]
-    # print(nn_x)
-    # print(nn_y)
-    # print(nn_z)
-
-    filepaths = init_convergence_file(coords)
+    filepaths = init_convergence_file(coords, labels)
 
     return coords, nn_indx, filepaths
 
-def init_convergence_file(monitor_coords):
+def init_convergence_file(monitor_coords, monitor_label):
     """
     Initializes convergence files for monitoring points.
 
@@ -167,6 +167,9 @@ def init_convergence_file(monitor_coords):
     monitor_coords : numpy.ndarray
         A 2D array of shape (nmonitor, 3) where each row represents the 
         (x, y, z) coordinates of a monitoring point.
+
+    monitor_label : list[str]
+        A 1D list of labels for each monitoring point.
 
     Returns:
     -------
@@ -185,6 +188,7 @@ def init_convergence_file(monitor_coords):
             f.write(f'{monitor_coords[k,0]}, '
                     f'{monitor_coords[k,1]}, '
                     f'{monitor_coords[k,2]}\n')
+            f.write(f'{monitor_label[k]}\n')
             f.write(f'i, time, dt, u, v, w, p, MAX_DIV\n')
 
         filepaths.append(filepath)

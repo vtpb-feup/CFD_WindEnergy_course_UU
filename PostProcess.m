@@ -1,44 +1,21 @@
 clear all; close all; clc;
-%% Post-processing file 
+%% Post-processing file
+% Adapt these values in function of the file your are post-processing
 rho = 1.225;    % Air density [kg/m^3]
+X_T = [1000 1300 1600 1900];
+Y_T = [0 0 0 0];
+Z_T = [0 0 0 0];
+R_T = [50 50 50 50];
+U_inf = 8;
 
 %% Load of the data from Python script
-data4 = load('simulation_1466_4ms.mat');
-data5 = load('simulation_1469_5ms.mat');
-data6 = load('simulation_1471_6ms.mat');
-data7 = load('simulation_1473_7ms.mat');
-data = load('simulation_1475_8ms.mat');     % Ref case for the post processing
-
-% Convert each field to double
-fieldNames = fieldnames(data4);
-for i = 1:numel(fieldNames)
-    data4.(fieldNames{i}) = double(data4.(fieldNames{i}));
-end
-
-% Convert each field to double
-fieldNames = fieldnames(data5);
-for i = 1:numel(fieldNames)
-    data5.(fieldNames{i}) = double(data5.(fieldNames{i}));
-end
-
-% Convert each field to double
-fieldNames = fieldnames(data6);
-for i = 1:numel(fieldNames)
-    data6.(fieldNames{i}) = double(data6.(fieldNames{i}));
-end
-
-% Convert each field to double
-fieldNames = fieldnames(data7);
-for i = 1:numel(fieldNames)
-    data7.(fieldNames{i}) = double(data7.(fieldNames{i}));
-end
+data = load('simulation_R4_Sx3.mat');     % Ref case for the post processing
 
 % Convert each field to double
 fieldNames = fieldnames(data);
 for i = 1:numel(fieldNames)
     data.(fieldNames{i}) = double(data.(fieldNames{i}));
 end
-
 
 x = data.x_p; y = data.y_p; z = data.z_p;
 
@@ -62,9 +39,9 @@ for i = 1:length(x)
 end
 
 % Turbine representation
-for i = 1:size(data.X_T,2)
-    turb = linspace(-data.R_T(i),data.R_T(i),100);
-    plot(data.X_T(i)*ones(size(turb)),turb,'-r','LineWidth',2)
+for i = 1:size(X_T,2)
+    turb = linspace(-R_T(i),R_T(i),100);
+    plot(X_T(i)*ones(size(turb)),turb,'-r','LineWidth',2)
 end
 
 xlabel('X [m]'); ylabel('Z [m]');
@@ -76,12 +53,12 @@ grid on; box on;
 subplot(212)
 hold on; 
 
-contourf(data.x_u,data.z_u,squeeze(data.u(:,72,:)))
+contourf(data.x_u,data.z_u,squeeze(data.u(:,size(data.u,2)/2,:)))
 
 % Turbine representation
-for i = 1:size(data.X_T,2)
-    turb = linspace(-data.R_T(i),data.R_T(i),100);
-    plot(data.X_T(i)*ones(size(turb)),turb,'-r','LineWidth',2)
+for i = 1:size(X_T,2)
+    turb = linspace(-R_T(i),R_T(i),100);
+    plot(X_T(i)*ones(size(turb)),turb,'-r','LineWidth',2)
 end
 
 xlabel('X [m]'); ylabel('Z [m]');
@@ -91,13 +68,13 @@ hColorbar = colorbar('east');
 
 
 %% Plot of centerline u and p
-u_centerline = zeros(size(data.x_u,2),size(data.X_T,2));
-p_centerline = zeros(size(data.x_p,2),size(data.X_T,2));
+u_centerline = zeros(size(data.x_u,2),size(X_T,2));
+p_centerline = zeros(size(data.x_p,2),size(X_T,2));
 
 % Interpolation over Y and Z to have the hub height value
-for i = 1:size(data.X_T,2)
-    u_centerline(:,i) = interp3(data.z_u,data.y_u,data.x_u,data.u,data.Z_T(i),data.Y_T(i),data.x_u);
-    p_centerline(:,i) = interp3(data.z_p,data.y_p,data.x_p,data.p,data.Z_T(i),data.Y_T(i),data.x_p);
+for i = 1:size(X_T,2)
+    u_centerline(:,i) = interp3(data.y_u,data.z_u,data.x_u,data.u,Z_T(i),Y_T(i),data.x_u);
+    p_centerline(:,i) = interp3(data.y_p,data.z_p,data.x_p,data.p,Z_T(i),Y_T(i),data.x_p);
 end
 
 % Plot of the centerline value for each turbine (useful if there is a
@@ -115,32 +92,45 @@ xlabel('X [m]'); ylabel('Pressure [?]');
 title('Centerline Pressure');
 grid on; box on; hold on; axis tight;
 
-%% Power Conversion Table (to get rid of induction)
-dist_from_turb = 7*data.R_T;    % [m]
-power_at_rotor = [get_power(data4,dist_from_turb,rho) get_power(data5,dist_from_turb,rho) get_power(data6,dist_from_turb,rho) get_power(data7,dist_from_turb,rho) get_power(data,dist_from_turb,rho)];
-power_bf_rotor = [get_power(data4,0,rho) get_power(data5,0,rho) get_power(data6,0,rho) get_power(data7,0,rho) get_power(data,0,rho)];
-
-figure(3)
-plot(power_bf_rotor,power_at_rotor,'or','LineWidth',2)
-
-ylabel(sprintf('Power at %2.1f D [MW]',dist_from_turb/(2*data.R_T))); xlabel('Power at rotor [MW]');
-title('Power regression fit');
-grid on; box on; hold on; axis tight;
-
-% Get the linear reg fit
-p = polyfit(power_bf_rotor,power_at_rotor,1);
-
-% plot of linear fit
-yfit = p(1).*linspace(power_bf_rotor(1),power_bf_rotor(end),100) + p(2);
-plot(linspace(power_bf_rotor(1),power_bf_rotor(end),100),yfit,'b--','LineWidth',1.5)
-
-
 
 %% Power computation (Area average)
-power_turb = get_power(data,dist_from_turb,rho);
+power_turb = (0.5.*rho.*(pi*R_T.^2)'.*get_vel(data,0,X_T,R_T).^3)/1e6;
 
-% Computation of normalized power
-power_norm = 1e6*power_turb./(0.5.*rho.*(pi*data.R_T.^2)'.*data.U_inf.^3);
+%% Computation of Cp
+
+% computation of Ref wind speed
+p = [0.7024 0.1363];    % Linear coefficient from previous sim
+
+U_ref = get_vel(data,0,X_T,R_T)/p(1) - p(2); 
+Cp = 1e6*power_turb./(0.5.*rho.*(pi*R_T.^2)'.*U_ref.^3);
+Cp(1) = 1e6*power_turb(1)./(0.5.*rho.*(pi*R_T(1).^2)'.*U_inf.^3);
+
+%% Blockage analysis
+% Import of wind speed of first turbine
+WindSpeed_FirstTurbine = load("WindSpeed_firstTurbine.mat");
+
+figure(3)
+subplot(121)
+Sx = 3*2*R_T(1); Sy = 4*2*R_T(1);
+plot([1 2 4],[WindSpeed_FirstTurbine.U_T1_inf WindSpeed_FirstTurbine.U_R2_Sx3 WindSpeed_FirstTurbine.U_R4_Sx3]./WindSpeed_FirstTurbine.U_T1_inf,'ro--')
+xlabel('N_{rows}'); ylabel('U/U_{ref}'); ylim([0.9905 1])
+grid on; box on; hold on;
+title('S_{x} = 3D')
+Segalini_law = (1-0.097*((Sx*Sy/(2*R_T(1))^2)^-0.9)*(1-exp(0.88-0.88.*linspace(1,4,100))));
+plot(linspace(1,4,100),Segalini_law,'b')
+
+
+subplot(122)
+Sx = 6*2*R_T(1); Sy = 4*2*R_T(1); 
+plot([1 2 4],[WindSpeed_FirstTurbine.U_T1_inf WindSpeed_FirstTurbine.U_R2_Sx6 WindSpeed_FirstTurbine.U_R4_Sx6]./WindSpeed_FirstTurbine.U_T1_inf,'ro--')
+xlabel('N_{rows}'); ylim([0.9905 1]);
+grid on; box on; hold on;
+title('S_{x} = 6D')
+Segalini_law = (1-0.097*((Sx*Sy/(2*R_T(1))^2)^-0.9)*(1-exp(0.88-0.88.*linspace(1,4,100))));
+plot(linspace(1,4,100),Segalini_law,'b')
+legend('CFD Data','Segalini (2020)','Location','southwest')
+
+sgtitle('Rotor averaged wind speed evolution of the first turbine');
 
 
 

@@ -2,14 +2,16 @@ clear all; close all; clc;
 %% Post-processing file
 % Adapt these values in function of the file your are post-processing
 rho = 1.225;    % Air density [kg/m^3]
-X_T = [1000 1300 1600 1900];
-Y_T = [0 0 0 0];
-Z_T = [0 0 0 0];
-R_T = [50 50 50 50];
+X_T = [1000];
+Y_T = [0];
+Z_T = [0];
+R_T = [50];
+CT = 0.8;
 U_inf = 8;
+dist_turb_vel = 0;
 
 %% Load of the data from Python script
-data = load('simulation_R4_Sx3.mat');     % Ref case for the post processing
+data = load('simulation_R1_Tinf.mat');     % Ref case for the post processing
 
 % Convert each field to double
 fieldNames = fieldnames(data);
@@ -81,39 +83,51 @@ end
 % different Y or Z than o)
 figure(2)
 subplot(211)
-plot(data.x_u,u_centerline(:,1))   
+plot(data.x_u,u_centerline(:,1))
+grid on; box on; hold on; axis tight;
+plot(X_T, interp1(data.x_u,u_centerline(:,1),X_T), 'ro', 'MarkerFaceColor', 'r', 'MarkerSize', 5);
 xlabel('X [m]'); ylabel('HH wind speed [m/s]');
 title('Centerline streamwise velocity');
-grid on; box on; hold on; axis tight;
 
+ 
 subplot(212)
-plot(data.x_p,p_centerline(:,1)) 
+plot(data.x_p,p_centerline(:,1))
+grid on; box on; hold on; axis tight;
+plot(X_T, interp1(data.x_p,p_centerline(:,1),X_T), 'ro', 'MarkerFaceColor', 'r', 'MarkerSize', 5);
 xlabel('X [m]'); ylabel('Pressure [?]');
 title('Centerline Pressure');
-grid on; box on; hold on; axis tight;
 
 
 %% Power computation (Area average)
-power_turb = (0.5.*rho.*(pi*R_T.^2)'.*get_vel(data,0,X_T,R_T).^3)/1e6;
+a_AD = (1-sqrt(1-CT))/2;
+power_turb = (0.5.*rho.*pi*R_T'.^2.*get_vel(data,dist_turb_vel,X_T,R_T).^3./(1-a_AD)^2.*CT)/1e6;
 
 %% Computation of Cp
 
-% computation of Ref wind speed
+% Computation of Ref wind speed
 p = [0.7024 0.1363];    % Linear coefficient from previous sim
 
-U_ref = get_vel(data,0,X_T,R_T)/p(1) - p(2); 
+U_ref = get_vel(data,dist_turb_vel,X_T,R_T)/p(1) - p(2); 
 Cp = 1e6*power_turb./(0.5.*rho.*(pi*R_T.^2)'.*U_ref.^3);
 Cp(1) = 1e6*power_turb(1)./(0.5.*rho.*(pi*R_T(1).^2)'.*U_inf.^3);
+
+% Power plot
+figure(3)
+plot(X_T,power_turb,'bo--')
+grid on; box on; hold on; axis tight;
+xlabel('X [m]'); ylabel('Power [MW]');
+title('Turbine power evolution');
 
 %% Blockage analysis
 % Import of wind speed of first turbine
 WindSpeed_FirstTurbine = load("WindSpeed_firstTurbine.mat");
 
-figure(3)
+figure(4)
 subplot(121)
 Sx = 3*2*R_T(1); Sy = 4*2*R_T(1);
 plot([1 2 4],[WindSpeed_FirstTurbine.U_T1_inf WindSpeed_FirstTurbine.U_R2_Sx3 WindSpeed_FirstTurbine.U_R4_Sx3]./WindSpeed_FirstTurbine.U_T1_inf,'ro--')
 xlabel('N_{rows}'); ylabel('U/U_{ref}'); ylim([0.9905 1])
+xticks([0, 1, 2, 3, 4]);
 grid on; box on; hold on;
 title('S_{x} = 3D')
 Segalini_law = (1-0.097*((Sx*Sy/(2*R_T(1))^2)^-0.9)*(1-exp(0.88-0.88.*linspace(1,4,100))));
@@ -124,13 +138,14 @@ subplot(122)
 Sx = 6*2*R_T(1); Sy = 4*2*R_T(1); 
 plot([1 2 4],[WindSpeed_FirstTurbine.U_T1_inf WindSpeed_FirstTurbine.U_R2_Sx6 WindSpeed_FirstTurbine.U_R4_Sx6]./WindSpeed_FirstTurbine.U_T1_inf,'ro--')
 xlabel('N_{rows}'); ylim([0.9905 1]);
+xticks([0, 1, 2, 3, 4]);
 grid on; box on; hold on;
 title('S_{x} = 6D')
 Segalini_law = (1-0.097*((Sx*Sy/(2*R_T(1))^2)^-0.9)*(1-exp(0.88-0.88.*linspace(1,4,100))));
 plot(linspace(1,4,100),Segalini_law,'b')
 legend('CFD Data','Segalini (2020)','Location','southwest')
 
-sgtitle('Rotor averaged wind speed evolution of the first turbine');
+% sgtitle('Rotor averaged wind speed evolution of the first turbine');
 
 
 
